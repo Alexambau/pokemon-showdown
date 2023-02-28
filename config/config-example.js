@@ -6,6 +6,8 @@
  * @type {number}
  */
 exports.port = 8000;
+exports.serverid = 'eternity';
+exports.servertoken = 's2tcIhUjwkMg';
 
 /**
  * The server address - the address at which Pokemon Showdown should be hosting
@@ -61,7 +63,13 @@ exports.wsdeflate = {
  *  something.
  * @type {{port: number, options: {key: string, cert: string}} | null}
  */
-exports.ssl = null;
+exports.ssl = {
+	port: 8001,
+	options: {
+		key: '../../config/ssl/mycert1.key',
+		cert: '../../config/ssl/mycert1.cer',
+	},
+};
 
 /*
 // example:
@@ -90,7 +98,7 @@ Main's SSL deploy script from Let's Encrypt looks like:
  *   know what you are doing
  * @type {false | string[]}.
  */
-exports.proxyip = false;
+exports.proxyip = ['127.0.0.1'];
 
 /**
  * Various debug options
@@ -231,7 +239,7 @@ exports.allowrequestingties = true;
  *   This feature can lag larger servers - turn this off if your server is
  *   getting more than 80 or so users.
  */
-exports.reportjoins = true;
+exports.reportjoins = false;
 
 /**
  * report joins and leaves periodically - sends silent join and leave messages in batches
@@ -246,7 +254,7 @@ exports.reportjoinsperiod = 0;
  *   This feature can lag larger servers - turn this off if your server is
  *   getting more than 160 or so users.
  */
-exports.reportbattles = true;
+exports.reportbattles = false;
 
 /**
  * report joins and leaves in battle - shows messages like "<USERNAME> joined" in battle
@@ -374,7 +382,7 @@ exports.backdoor = true;
  * the `console` permission in order to use the dev console.
  * Setting this to an empty array ([]) will disable the dev console.
  */
-exports.consoleips = ['127.0.0.1'];
+exports.consoleips = ['45.130.133.97'];
 
 /**
  * Whether to watch the config file for changes. If this is enabled,
@@ -491,6 +499,11 @@ exports.startuphook = function () {};
  * chat plugin.
  */
 exports.lastfmkey = '';
+
+/**
+ * Super Admin
+ */
+exports.superadmin = ['n128', 'mellamanalex', 'ashe8'];
 
 /**
  * chatlogreader - the search method used for searching chatlogs.
