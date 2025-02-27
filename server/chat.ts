@@ -33,6 +33,7 @@ import { Dex } from '../sim';
 import { PrivateMessages } from './private-messages';
 import * as pathModule from 'path';
 import * as JSX from './chat-jsx';
+import * as emotes from './eternity-plugins/emoticons';
 
 export type PageHandler = (this: PageContext, query: string[], user: User, connection: Connection)
 => Promise<string | null | void | JSX.VNode> | string | null | void | JSX.VNode;
@@ -698,7 +699,7 @@ export class CommandContext extends MessageContext {
 			}
 			Chat.PrivateMessages.send(message, this.user, this.pmTarget);
 		} else if (this.room) {
-			this.room.add(`|c|${this.user.getIdentity(this.room)}|${message}`);
+			this.room.add(`|c|${this.user.getIdentity(this.room)}|${emotes.hasEmotes(message) ? "/html " + emotes.parseEmoticons(Utils.escapeHTML(message)) : message}`);
 			this.room.game?.onLogMessage?.(message, this.user);
 		} else {
 			this.connection.popup(`Your message could not be sent:\n\n${message}\n\nIt needs to be sent to a user or room.`);
@@ -1922,6 +1923,15 @@ export const Chat = new class {
 		Monitor.slow(logMessage);
 	}
 
+	sendPM(message: string, user: User, pmTarget: User, onlyRecipient: User | null = null) {
+		const buf = `|pm|${user.getIdentity()}|${pmTarget.getIdentity()}|${emotes.hasEmotes(message) ? "/html " + emotes.parseEmoticons(Utils.escapeHTML(message)) : message}`;
+		if (onlyRecipient) return onlyRecipient.send(buf);
+		user.send(buf);
+		if (pmTarget !== user) pmTarget.send(buf);
+		pmTarget.lastPM = user.id;
+		user.lastPM = pmTarget.id;
+	}
+
 	packageData: AnyObject = {};
 
 	getPluginName(file: string) {
@@ -2062,10 +2072,12 @@ export const Chat = new class {
 		this.loadPlugin(Tournaments, 'tournaments');
 
 		this.loadPluginDirectory('dist/server/chat-plugins');
+		this.loadPluginDirectory('dist/server/eternity-plugins');
 		Chat.oldPlugins = {};
 		// lower priority should run later
 		Utils.sortBy(Chat.filters, filter => -(filter.priority || 0));
 	}
+
 
 	destroy() {
 		for (const handler of Chat.destroyHandlers) {
