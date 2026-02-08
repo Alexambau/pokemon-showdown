@@ -67,7 +67,7 @@ export class RandomGen4Teams extends RandomGen5Teams {
 			Ground: (movePool, moves, abilities, types, counter) => !counter.get('Ground'),
 			Ice: (movePool, moves, abilities, types, counter) => !counter.get('Ice'),
 			Poison: (movePool, moves, abilities, types, counter, species) => (
-				!counter.get('Poison') && (types.has('Grass') || species.id === 'gengar')
+				!counter.get('Poison') && (['Ghost', 'Grass', 'Ground'].some(type => types.has(type)))
 			),
 			Psychic: (movePool, moves, abilities, types, counter) => (
 				!counter.get('Psychic') && (types.has('Fighting') || movePool.includes('calmmind'))
@@ -215,16 +215,9 @@ export class RandomGen4Teams extends RandomGen5Teams {
 			this.incompatibleMoves(moves, movePool, statusInflictingMoves, statusInflictingMoves);
 		}
 
-		// Cull filler moves for otherwise fixed set Stealth Rock users
-		if (!teamDetails.stealthRock) {
-			if (species.id === 'registeel' && role === 'Staller') {
-				if (movePool.includes('thunderwave')) this.fastPop(movePool, movePool.indexOf('thunderwave'));
-				if (moves.size + movePool.length <= this.maxMoveCount) return;
-			}
-			if (species.id === 'wormadamtrash' && role === 'Staller') {
-				if (movePool.includes('suckerpunch')) this.fastPop(movePool, movePool.indexOf('suckerpunch'));
-				if (moves.size + movePool.length <= this.maxMoveCount) return;
-			}
+		if (species.id === 'bastiodon') {
+			// Enforces Toxic too, for good measure.
+			this.incompatibleMoves(moves, movePool, ['metalburst', 'protect', 'roar'], ['metalburst', 'protect']);
 		}
 	}
 
@@ -375,6 +368,12 @@ export class RandomGen4Teams extends RandomGen5Teams {
 						movePool, preferredType, role);
 				}
 			}
+		}
+
+		// Enforce Stealth Rock if the team doesn't already have it
+		if (movePool.includes('stealthrock') && !teamDetails.stealthRock) {
+			counter = this.addMove('stealthrock', moves, types, abilities, teamDetails, species, isLead,
+				movePool, preferredType, role);
 		}
 
 		// Enforce recovery
@@ -549,6 +548,7 @@ export class RandomGen4Teams extends RandomGen5Teams {
 		if (species.id === 'unown') return 'Choice Specs';
 		if (species.id === 'wobbuffet') return 'Custap Berry';
 		if (species.id === 'ditto' || (species.id === 'rampardos' && role === 'Fast Attacker')) return 'Choice Scarf';
+		if (species.id === 'honchkrow') return 'Life Orb';
 		if (ability === 'Poison Heal' || moves.has('facade')) return 'Toxic Orb';
 		if (ability === 'Speed Boost' && species.id === 'yanmega') return 'Life Orb';
 		if (['healingwish', 'switcheroo', 'trick'].some(m => moves.has(m))) {
@@ -651,6 +651,8 @@ export class RandomGen4Teams extends RandomGen5Teams {
 		teamDetails: RandomTeamsTypes.TeamDetails = {},
 		isLead = false
 	): RandomTeamsTypes.RandomSet {
+		const ruleTable = this.dex.formats.getRuleTable(this.format);
+
 		species = this.dex.species.get(species);
 		const forme = this.getForme(species);
 		const sets = this.randomSets[species.id]["sets"];
@@ -747,7 +749,7 @@ export class RandomGen4Teams extends RandomGen5Teams {
 		}
 
 		// Minimize confusion damage
-		if (!counter.get('Physical') && !moves.has('transform')) {
+		if (!counter.get('Physical') && !moves.has('transform') && !ruleTable.has('forceofthefallenmod')) {
 			evs.atk = 0;
 			ivs.atk = hasHiddenPower ? (ivs.atk || 31) - 28 : 0;
 		}

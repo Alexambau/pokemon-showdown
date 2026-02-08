@@ -18,7 +18,7 @@ export const Conditions: import('../../../sim/dex-conditions').ModdedConditionDa
 		inherit: true,
 		onBeforeMovePriority: 2,
 		onBeforeMove(pokemon) {
-			if (this.randomChance(1, 4)) {
+			if (this.randomChance(63, 256)) {
 				this.add('cant', pokemon, 'par');
 				return false;
 			}
@@ -176,6 +176,11 @@ export const Conditions: import('../../../sim/dex-conditions').ModdedConditionDa
 		},
 		onStart(target, source, effect) {
 			this.effectState.move = effect.id;
+		},
+		onAfterMove(pokemon) {
+			if (this.effectState.duration === 1) {
+				pokemon.removeVolatile('lockedmove');
+			}
 		},
 		onEnd(target) {
 			// Confusion begins even if already confused

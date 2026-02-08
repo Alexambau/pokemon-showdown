@@ -65,6 +65,7 @@ export const Scripts: ModdedBattleScriptsData = {
 				}
 
 				pokemon.maybeDisabled = false;
+				pokemon.maybeLocked = false;
 				for (const moveSlot of pokemon.moveSlots) {
 					moveSlot.disabled = false;
 					moveSlot.disabledSource = '';
@@ -190,6 +191,7 @@ export const Scripts: ModdedBattleScriptsData = {
 				flags: {},
 				// Does not need activation message with this
 				fullname: 'ability: ' + move.name,
+				effectType: "Ability",
 				onStart(this: Battle, pokemon: Pokemon) {
 					if (pokemon.m.trademarkUsedThisTurn) {
 						// no.
@@ -200,6 +202,10 @@ export const Scripts: ModdedBattleScriptsData = {
 						const trademark = this.dex.getActiveMove(move.id);
 						trademark.accuracy = true;
 						this.actions.useMove(trademark, pokemon);
+						if (pokemon.volatiles['choicelock']?.move === trademark.id) {
+							this.debug('removing choicelock caused by trademark');
+							pokemon.removeVolatile('choicelock');
+						}
 					}
 				},
 				toString() {
@@ -287,7 +293,7 @@ export const Scripts: ModdedBattleScriptsData = {
 				this.apparentType = this.terastallized;
 			}
 			// Changed to be compatible with trademarks
-			if (this.battle.gen > 2) this.setAbility(pokemon.getAbility(), this, true, true);
+			if (this.battle.gen > 2) this.setAbility(pokemon.getAbility(), this, null, true, true);
 
 			// Change formes based on held items (for Transform)
 			// Only ever relevant in Generation 4 since Generation 3 didn't have item-based forme changes

@@ -19,7 +19,7 @@ describe('Substitute', () => {
 		assert.equal(pokemon.maxhp - pokemon.hp, Math.floor(pokemon.maxhp / 4));
 	});
 
-	it('should not block the user\'s own moves from targetting itself', () => {
+	it('should not block the user\'s own moves from targeting itself', () => {
 		battle = common.createBattle();
 		battle.setPlayer('p1', { team: [{ species: 'Mewtwo', ability: 'pressure', moves: ['substitute', 'calmmind'] }] });
 		battle.setPlayer('p2', { team: [{ species: 'Mewtwo', ability: 'pressure', moves: ['recover'] }] });
@@ -78,7 +78,7 @@ describe('Substitute', () => {
 		battle.makeChoices('move highjumpkick', 'move agility');
 
 		// Modding accuracy so High Jump Kick will miss and cause recoil
-		battle.onEvent('Accuracy', battle.format, true);
+		battle.onEvent('Accuracy', battle.format, false);
 		battle.makeChoices('move highjumpkick', 'move agility');
 
 		// Only P1 has a substitute, so no one takes recoil damage.
@@ -107,7 +107,7 @@ describe('Substitute', () => {
 		assert.equal(battle.p2.active[0].hp - hp, Math.ceil(Math.floor(battle.p1.active[0].maxhp / 4) / 2));
 	});
 
-	it('should block most status moves targetting the user', () => {
+	it('should block most status moves targeting the user', () => {
 		battle = common.createBattle();
 		battle.setPlayer('p1', { team: [{ species: 'Mewtwo', ability: 'noguard', moves: ['substitute'] }] });
 		battle.setPlayer('p2', { team: [{ species: 'Mewtwo', ability: 'pressure', item: 'laggingtail', moves: ['hypnosis', 'toxic', 'poisongas', 'thunderwave', 'willowisp'] }] });
@@ -128,18 +128,18 @@ describe('Substitute', () => {
 
 	it(`[Gen 1] should track what the actual damage would have been without the Substitute`, () => {
 		battle = common.gen(1).createBattle([[
-			{ species: 'Ponyta', moves: ['substitute', 'growl'], evs: { hp: 252, spd: 252 } },
+			{ species: 'Rapidash', moves: ['substitute'], evs: { hp: 252, spd: 252 } },
 		], [
-			{ species: 'Cloyster', moves: ['clamp'], evs: { spa: 252 } },
+			{ species: 'Squirtle', moves: ['clamp'], evs: { spa: 252 } },
 		]]);
-
-		const ponyta = battle.p1.active[0];
-		battle.makeChoices('move substitute', 'move clamp');
-		assert.equal(ponyta.maxhp - ponyta.hp, Math.floor(ponyta.maxhp / 4));
-
-		const hp = ponyta.hp;
-		battle.makeChoices('move growl', 'move clamp');
-		assert.bounded(hp - ponyta.hp, [91, 108]);
+		const rapidash = battle.p1.active[0];
+		battle.makeChoices();
+		assert(rapidash.volatiles['substitute']);
+		const damage = battle.p2.active[0].volatiles['partialtrappinglock'].damage;
+		battle.makeChoices();
+		assert.false(rapidash.volatiles['substitute']);
+		// check the damage is uncapped
+		assert.equal(battle.lastDamage, damage);
 	});
 
 	it(`[Gen 1] Substitute should not block secondary effect confusion if it is unbroken`, () => {

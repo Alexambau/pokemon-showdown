@@ -92,14 +92,14 @@ export const Rulesets: import('../../../sim/dex-formats').ModdedFormatDataTable 
 				if (["Zacian", "Zamazenta"].includes(species.baseSpecies) && this.toID(set.item).startsWith('rusted')) {
 					species = this.dex.species.get(set.species + "-Crowned");
 				}
-				if (set.item && this.dex.items.get(set.item).megaStone) {
+				if (set.item) {
 					const item = this.dex.items.get(set.item);
-					if (item.megaEvolves === species.baseSpecies) {
-						species = this.dex.species.get(item.megaStone);
+					if (item.megaStone?.[species.baseSpecies]) {
+						species = this.dex.species.get(item.megaStone[species.baseSpecies]);
 					}
 				}
 				if (
-					['ag', 'uber'].includes(this.toID(this.ruleTable.has('standardnatdex') ? species.natDexTier : species.tier)) ||
+					['ag', 'uber'].includes(this.toID(this.ruleTable.has('natdexmod') ? species.natDexTier : species.tier)) ||
 					this.toID(set.ability) === 'powerconstruct'
 				) {
 					gods.add(species.name);
@@ -114,7 +114,7 @@ export const Rulesets: import('../../../sim/dex-formats').ModdedFormatDataTable 
 			if (source || !target?.side) return;
 			const god = target.side.team.find(set => {
 				let godSpecies = this.dex.species.get(set.species);
-				const isNatDex = this.format.ruleTable?.has('standardnatdex');
+				const isNatDex = this.format.ruleTable?.has('natdexmod');
 				const validator = this.dex.formats.getRuleTable(
 					this.dex.formats.get(`gen${this.gen}${isNatDex && this.gen >= 8 ? 'nationaldex' : 'ou'}`)
 				);
@@ -123,7 +123,9 @@ export const Rulesets: import('../../../sim/dex-formats').ModdedFormatDataTable 
 				}
 				if (set.item) {
 					const item = this.dex.items.get(set.item);
-					if (item.megaEvolves === set.species) godSpecies = this.dex.species.get(item.megaStone);
+					if (item.megaStone?.[set.species]) {
+						godSpecies = this.dex.species.get(item.megaStone[set.species]);
+					}
 					if (["Zacian", "Zamazenta"].includes(godSpecies.baseSpecies) && item.id.startsWith('rusted')) {
 						godSpecies = this.dex.species.get(set.species + "-Crowned");
 					}

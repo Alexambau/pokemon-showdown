@@ -50,7 +50,7 @@ export function getBadges(user: User, curFormat: string) {
 	let curFormatBadge;
 	for (const [i, badge] of userBadges.entries()) {
 		if (badge.format === curFormat) {
-			userBadges.splice(i);
+			userBadges.splice(i, 1);
 			curFormatBadge = badge;
 		}
 	}
@@ -147,8 +147,7 @@ export async function getLadderTop(format: string) {
 		const results = await Net(`https://${Config.routes.root}/ladder/?format=${toID(format)}&json`).get();
 		const reply = JSON.parse(results);
 		return reply.toplist;
-	} catch (e) {
-		Monitor.crashlog(e, "A season ladder request");
+	} catch {
 		return null;
 	}
 }
@@ -285,7 +284,7 @@ export const pages: Chat.PageTable = {
 		const format = toID(query.shift());
 		const season = toID(query.shift()) || `${data.current.season}`;
 		if (!data.badgeholders[season]) {
-			return this.errorReply(`Season ${season} not found.`);
+			throw new Chat.ErrorMessage(`Season ${season} not found.`);
 		}
 		this.title = `[Seasons]`;
 		let buf = '<div class="pad">';

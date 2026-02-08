@@ -358,7 +358,11 @@ describe('Choices', () => {
 			battle.p1.chooseMove(1);
 			assert(buffer.length >= 2);
 			assert(buffer.some(message => message.startsWith('p1\n|error|[Unavailable choice]')));
-			assert(buffer.some(message => message.startsWith('p1\n|request|') && JSON.parse(message.slice(12)).active[0].moves[0].disabled));
+			const message = buffer.find(message => message.startsWith('p1\n|request|'));
+			assert(message);
+			const request = JSON.parse(message.slice(12));
+			assert(request.active[0].moves[0].disabled);
+			assert(request.update);
 		});
 
 		it('should send meaningful feedback to players if they try to switch a trapped Pokémon out', () => {
@@ -376,7 +380,11 @@ describe('Choices', () => {
 			battle.p1.chooseSwitch(2);
 			assert(buffer.length >= 2);
 			assert(buffer.some(message => message.startsWith('p1\n|error|[Unavailable choice]')));
-			assert(buffer.some(message => message.startsWith('p1\n|request|') && JSON.parse(message.slice(12)).active[0].trapped));
+			const message = buffer.find(message => message.startsWith('p1\n|request|'));
+			assert(message);
+			const request = JSON.parse(message.slice(12));
+			assert(request.active[0].trapped);
+			assert(request.update);
 		});
 	});
 
@@ -608,7 +616,7 @@ describe('Choices', () => {
 			assert(logText.includes(subString), `${logText} does not include ${subString}`);
 		});
 
-		it('should privately log the target of targetted chosen moves', () => {
+		it('should privately log the target of targeted chosen moves', () => {
 			battle = common.createBattle({ gameType: 'doubles' }, [[
 				{ species: "Bulbasaur", ability: 'overgrow', moves: ['tackle'] },
 				{ species: "Ivysaur", ability: 'overgrow', moves: ['tackle'] },
@@ -867,7 +875,7 @@ describe('Choice extensions', () => {
 			});
 
 			it(`should disallow to ${mode} switch decisions on move requests for unconfirmed trapping-immune Pokémon that would otherwise be trapped`, () => {
-				battle = common.createBattle({ cancel: true, pokemon: true, legality: true }, [
+				battle = common.createBattle({ cancel: true, legality: true }, [
 					[
 						{ species: 'Starmie', ability: 'naturalcure', moves: ['reflecttype', 'recover'] },
 						{ species: 'Mandibuzz', ability: 'overcoat', moves: ['knockoff'] },

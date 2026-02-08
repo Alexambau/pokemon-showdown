@@ -113,7 +113,7 @@ export class RandomGen7Teams extends RandomGen8Teams {
 				!counter.get('Bug') && (abilities.includes('Tinted Lens') || abilities.includes('Adaptability'))
 			),
 			Dark: (movePool, moves, abilities, types, counter) => !counter.get('Dark'),
-			Dragon: (movePool, moves, abilities, types, counter) => !counter.get('Dragon') && !abilities.includes('Aerilate'),
+			Dragon: (movePool, moves, abilities, types, counter) => !counter.get('Dragon'),
 			Electric: (movePool, moves, abilities, types, counter) => !counter.get('Electric'),
 			Fairy: (movePool, moves, abilities, types, counter) => !counter.get('Fairy'),
 			Fighting: (movePool, moves, abilities, types, counter) => !counter.get('Fighting'),
@@ -135,7 +135,7 @@ export class RandomGen7Teams extends RandomGen8Teams {
 			Poison: (movePool, moves, abilities, types, counter) => !counter.get('Poison'),
 			Psychic: (movePool, moves, abilities, types, counter) => (
 				!counter.get('Psychic') && (
-					types.has('Fighting') || movePool.includes('psychicfangs') || movePool.includes('calmmind')
+					types.has('Fighting') || types.has('Fairy') || movePool.includes('psychicfangs') || movePool.includes('calmmind')
 				)
 			),
 			Rock: (movePool, moves, abilities, types, counter, species) => (!counter.get('Rock') && species.baseStats.atk >= 80),
@@ -345,7 +345,7 @@ export class RandomGen7Teams extends RandomGen8Teams {
 			['hornleech', 'woodhammer'],
 			[['gigadrain', 'leafstorm'], ['energyball', 'leafstorm', 'petaldance', 'powerwhip']],
 			['wildcharge', 'thunderbolt'],
-			['gunkshot', 'poisonjab'],
+			[['gunkshot', 'sludgewave'], 'poisonjab'],
 			[['drainpunch', 'focusblast'], ['closecombat', 'highjumpkick', 'superpower']],
 			['dracometeor', 'dragonpulse'],
 			['dragonclaw', 'outrage'],
@@ -367,6 +367,8 @@ export class RandomGen7Teams extends RandomGen8Teams {
 			['switcheroo', 'suckerpunch'],
 			// Jirachi
 			['bodyslam', 'healingwish'],
+			// Bastiodon
+			[['roar', 'protect'], ['metalburst', 'protect']],
 		];
 
 		for (const pair of incompatiblePairs) this.incompatibleMoves(moves, movePool, pair[0], pair[1]);
@@ -532,6 +534,12 @@ export class RandomGen7Teams extends RandomGen8Teams {
 		// Enforce Shadow Sneak on Kecleon
 		if (movePool.includes('shadowsneak') && species.id === 'kecleon') {
 			counter = this.addMove('shadowsneak', moves, types, abilities, teamDetails, species, isLead,
+				movePool, preferredType, role);
+		}
+
+		// Enforce Destiny Bond on Mega Banette, since that move is its entire reason to exist
+		if (movePool.includes('destinybond') && species.id === 'banettemega') {
+			counter = this.addMove('destinybond', moves, types, abilities, teamDetails, species, isLead,
 				movePool, preferredType, role);
 		}
 
@@ -845,6 +853,7 @@ export class RandomGen7Teams extends RandomGen8Teams {
 		if (species.name === 'Unown') return 'Choice Specs';
 		if (species.name === 'Wobbuffet') return 'Custap Berry';
 		if (species.name === 'Shuckle') return 'Mental Herb';
+		if (species.name === 'Honchkrow') return 'Life Orb';
 		if (
 			ability === 'Harvest' || ability === 'Cheek Pouch' || (ability === 'Emergency Exit' && !!counter.get('Status'))
 		) return 'Sitrus Berry';
@@ -926,7 +935,7 @@ export class RandomGen7Teams extends RandomGen8Teams {
 		if (ability === 'Sturdy' && moves.has('explosion') && !counter.get('speedsetup')) return 'Custap Berry';
 		if (types.includes('Normal') && moves.has('fakeout') && !!counter.get('Normal')) return 'Silk Scarf';
 		if (species.id === 'latias' || species.id === 'latios') return 'Soul Dew';
-		if (role === 'Bulky Setup' && !!counter.get('speedsetup') && !moves.has('swordsdance')) {
+		if (role === 'Bulky Setup' && (!!counter.get('speedsetup') || moves.has('shiftgear')) && !moves.has('swordsdance')) {
 			return 'Weakness Policy';
 		}
 		if (species.id === 'palkia') return 'Lustrous Orb';
@@ -948,12 +957,6 @@ export class RandomGen7Teams extends RandomGen8Teams {
 			)
 		) return 'Rocky Helmet';
 		if (['kingsshield', 'protect', 'spikyshield', 'substitute'].some(m => moves.has(m))) return 'Leftovers';
-		if (
-			this.dex.getEffectiveness('Ground', species) >= 2 &&
-			ability !== 'Levitate' && species.id !== 'golemalola'
-		) {
-			return 'Air Balloon';
-		}
 		if (
 			(role === 'Fast Support' || moves.has('stickyweb')) && isLead && defensiveStatTotal < 255 &&
 			!counter.get('recovery') && (counter.get('hazards') || counter.get('setup')) &&
@@ -1018,6 +1021,8 @@ export class RandomGen7Teams extends RandomGen8Teams {
 		teamDetails: RandomTeamsTypes.TeamDetails = {},
 		isLead = false
 	): RandomTeamsTypes.RandomSet {
+		const ruleTable = this.dex.formats.getRuleTable(this.format);
+
 		species = this.dex.species.get(species);
 		const forme = this.getForme(species);
 		const sets = this.randomSets[species.id]["sets"];
@@ -1076,7 +1081,8 @@ export class RandomGen7Teams extends RandomGen8Teams {
 		// Minimize confusion damage, including if Foul Play is its only physical attack
 		if (
 			(!counter.get('Physical') || (counter.get('Physical') <= 1 && (moves.has('foulplay') || moves.has('rapidspin')))) &&
-			!moves.has('copycat') && !moves.has('transform')
+			!moves.has('copycat') && !moves.has('transform') &&
+			!ruleTable.has('forceofthefallenmod')
 		) {
 			evs.atk = 0;
 			ivs.atk = 0;
@@ -1166,7 +1172,7 @@ export class RandomGen7Teams extends RandomGen8Teams {
 		return {
 			name: species.baseSpecies,
 			species: forme,
-			gender: species.baseSpecies === 'Greninja' ? 'M' : species.gender,
+			gender: species.baseSpecies === 'Greninja' ? 'M' : (species.gender || (this.random(2) ? 'F' : 'M')),
 			shiny: this.randomChance(1, 1024),
 			level,
 			moves: shuffledMoves,
@@ -1378,7 +1384,6 @@ export class RandomGen7Teams extends RandomGen8Teams {
 		if (pokemon.length < this.maxTeamSize && pokemon.length < 12) {
 			throw new Error(`Could not build a random team for ${this.format} (seed=${seed})`);
 		}
-
 		return pokemon;
 	}
 
@@ -1598,7 +1603,7 @@ export class RandomGen7Teams extends RandomGen8Teams {
 			if (isMonotype) {
 				// Prevents Mega Evolutions from breaking the type limits
 				if (itemData.megaStone) {
-					const megaSpecies = this.dex.species.get(itemData.megaStone);
+					const megaSpecies = this.dex.species.get(Object.values(itemData.megaStone)[0]);
 					if (types.length > megaSpecies.types.length) types = [species.types[0]];
 					// Only check the second type because a Mega Evolution should always share the first type with its base forme.
 					if (megaSpecies.types[1] && types[1] && megaSpecies.types[1] !== types[1]) {

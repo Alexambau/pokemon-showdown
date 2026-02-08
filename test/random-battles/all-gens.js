@@ -100,17 +100,18 @@ describe('value rule support (slow)', () => {
 
 	for (const format of Dex.formats.all()) {
 		if (!format.team) continue;
-		if (Dex.formats.getRuleTable(format).has('adjustleveldown') || Dex.formats.getRuleTable(format).has('adjustlevel')) continue; // already adjusts level
+		it(`${format.name} should support Adjust Level`, () => {
+			const ruleTable = Dex.formats.getRuleTable(format);
+			if (ruleTable.has('adjustleveldown') || ruleTable.has('adjustlevel')) return; // already adjusts level
 
-		for (const level of [1, 99999]) {
-			it(`${format.name} should support Adjust Level = ${level}`, () => {
+			for (const level of [1, 99999]) {
 				testTeam({ format: `${format.id}@@@Adjust Level = ${level}`, rounds: 50 }, team => {
 					for (const set of team) {
 						assert.equal(set.level, level);
 					}
 				});
-			});
-		}
+			}
+		});
 	}
 });
 
@@ -402,7 +403,7 @@ describe('[Gen 9] BSS Factory data should be valid (slow)', () => {
 		const genNum = 9;
 
 		for (const speciesid in setsJSON) {
-			const vType = 'bssregh';
+			const vType = 'bssregi';
 			let totalWeight = 0;
 			for (const set of setsJSON[speciesid].sets) {
 				totalWeight += set.weight;
@@ -458,6 +459,77 @@ describe('[Gen 9] BSS Factory data should be valid (slow)', () => {
 			// Some species have 1/3 probability for each set
 			if (totalWeight === 99) totalWeight += 1;
 			assert.equal(totalWeight, 100, `Total set weight for ${speciesid} is ${totalWeight < 100 ? 'less' : 'greater'} than 100%`);
+		}
+	});
+});
+
+describe('[Gen 9] 1v1 Factory data should be valid (slow)', () => {
+	it(`gen9/1v1-factory-sets.json should contain valid sets`, function () {
+		this.timeout(0);
+		const setsJSON = require(`../../dist/data/random-battles/gen9/1v1-factory-sets.json`);
+		const mod = 'gen9';
+
+		for (const speciesName in setsJSON) {
+			const speciesData = setsJSON[speciesName];
+			for (const set of speciesData.sets) {
+				const species = Dex.species.get(set.species);
+				assert(species.exists, `invalid species "${set.species}" of ${speciesName}`);
+				assert.equal(species.name, set.species, `miscapitalized species "${set.species}" of ${speciesName}`);
+
+				assert(species.id.startsWith(toID(species.baseSpecies)), `non-matching species "${set.species}" of ${speciesName}`);
+
+				for (const itemName of [].concat(set.item)) {
+					if (!itemName) continue;
+					const item = Dex.items.get(itemName);
+					assert(item.exists, `invalid item "${itemName}" of ${speciesName}`);
+					assert.equal(item.name, itemName, `miscapitalized item "${itemName}" of ${speciesName}`);
+				}
+
+				for (const abilityName of [].concat(set.ability)) {
+					const ability = Dex.abilities.get(abilityName);
+					assert(ability.exists, `invalid ability "${abilityName}" of ${speciesName}`);
+					assert.equal(ability.name, abilityName, `miscapitalized ability "${abilityName}" of ${speciesName}`);
+					const allowedAbilities = new Set(Object.values((species.battleOnly && !species.requiredAbility) ? Dex.species.get(species.battleOnly).abilities : species.abilities));
+					if (species.unreleasedHidden) allowedAbilities.delete(species.abilities.H);
+					assert(allowedAbilities.has(abilityName), `${speciesName} can't have ${abilityName}`);
+				}
+
+				for (const natureName of [].concat(set.nature)) {
+					const nature = Dex.natures.get(natureName);
+					assert(nature.exists, `invalid nature "${natureName}" of ${speciesName}`);
+					assert.equal(nature.name, natureName, `miscapitalized nature "${natureName}" of ${speciesName}`);
+				}
+
+				for (const moveSpec of set.moves) {
+					for (const moveName of [].concat(moveSpec)) {
+						const move = Dex.moves.get(moveName);
+						assert(move.exists, `invalid move "${moveName}" of ${speciesName}`);
+						assert.equal(move.name, moveName, `miscapitalized move "${moveName}" ≠ "${move.name}" of ${speciesName}`);
+						assert(validateLearnset(move, set, '1v1', mod), `illegal move "${moveName}" of ${speciesName}`);
+					}
+				}
+
+				// Check that no moves appear more than once in a set
+				assert.equal(set.moves.flat(1).length, new Set(set.moves.flat(1)).size, `${speciesName} has repeat moves`);
+
+				if (speciesName === 'Carbink') continue;
+				assert(!!set.evs, `Set of ${speciesName} has no EVs specified`);
+				const keys = Object.keys(set.evs);
+				let totalEVs = 0;
+				for (const ev of keys) {
+					assert(Dex.stats.ids().includes(ev), `Invalid EV key (${ev}) on set of ${speciesName}`);
+					totalEVs += set.evs[ev];
+					assert.equal(set.evs[ev] % 4, 0, `EVs of ${ev} not divisible by 4 on ${speciesName}`);
+				}
+				const sortedKeys = Utils.sortBy([...keys], ev => Dex.stats.ids().indexOf(ev));
+				assert.deepEqual(keys, sortedKeys, `EVs out of order on set of ${speciesName}, possibly because one of them is for the wrong stat`);
+				assert(totalEVs <= 510, `more than 510 EVs on set of ${speciesName}`);
+			}
+			let totalWeight = 0;
+			for (const set of speciesData.sets) {
+				totalWeight += set.weight;
+			}
+			assert.equal(totalWeight, 100, `Total set weight for ${speciesName} is ${totalWeight < 100 ? 'less' : 'greater'} than 100%`);
 		}
 	});
 });
